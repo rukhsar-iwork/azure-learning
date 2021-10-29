@@ -1,31 +1,51 @@
-# Node.js
-# Build a general Node.js project with npm.
-# Add steps that analyze code, save build artifacts, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
 
-trigger:
-- main
+name: Build and deploy container app to Azure Web App - firstdockerapplication
 
-pool:
-  vmImage: ubuntu-latest
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
 
-steps:
-- task: NodeTool@0
-  inputs:
-    versionSpec: '10.x'
-  displayName: 'Install Node.js'
+jobs:
+  build:
+    runs-on: 'ubuntu-latest'
 
-- script: |
-    npm install
-    npm run build
-  displayName: 'npm install and build'
+    steps:
+    - uses: actions/checkout@v2
 
-- task: CopyFiles@2
-  inputs:
-    Contents: 'build/**' # Pull the build directory (React)
-    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
 
-- task: PublishBuildArtifacts@1
-  inputs: 
-    PathtoPublish: $(Build.ArtifactStagingDirectory) # dist or build files
-    ArtifactName: 'www' # output artifact named www
+    - name: Log in to registry
+      uses: docker/login-action@v1
+      with:
+        registry: https://firstazureapplicationcontainer.azurecr.io/
+        username: ${{ secrets.AzureAppService_ContainerUsername_4414f85766ee405c800b7f598ddd6be9 }}
+        password: ${{ secrets.AzureAppService_ContainerPassword_1cf4105a3b794be2b70de3aae34b66ac }}
+
+    - name: Build and push container image to registry
+      uses: docker/build-push-action@v2
+      with:
+        push: true
+        tags: firstazureapplicationcontainer.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_4414f85766ee405c800b7f598ddd6be9 }}/node-docker-demo:${{ github.sha }}
+        file: ./Dockerfile
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: 'production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+
+    steps:
+    - name: Deploy to Azure Web App
+      id: deploy-to-webapp
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: 'firstdockerapplication'
+        slot-name: 'production'
+        publish-profile: ${{ secrets.AzureAppService_PublishProfile_b8269a72bea64a329d2c6342cdb0a3d3 }}
+        images: 'firstazureapplicationcontainer.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_4414f85766ee405c800b7f598ddd6be9 }}/node-docker-demo:${{ github.sha }}'

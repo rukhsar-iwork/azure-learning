@@ -4,7 +4,7 @@ const express = require('express');
 const app = express();
 
 app.get('/', (req, res) => {
-  res.send('Hello Azure!!! Welcome to Decode ! Configured with Git');
+  res.send('Hello Azure!!! Welcome to Decode ! Configured with CI/CD');
 });
 
 app.listen(config.port, () => {
